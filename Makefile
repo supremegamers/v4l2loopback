@@ -45,6 +45,7 @@ MODULE_OPTIONS = devices=2
 
 all: v4l2loopback.ko utils
 
+modules: v4l2loopback.ko
 v4l2loopback: v4l2loopback.ko
 v4l2loopback.ko:
 	@echo "Building v4l2-loopback driver..."

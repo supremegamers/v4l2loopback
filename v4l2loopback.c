@@ -308,7 +308,7 @@ static const struct v4l2_ctrl_config v4l2loopback_ctrl_keepformat = {
 	.min	= 0,
 	.max	= 1,
 	.step	= 1,
-	.def	= 0,
+	.def    = 1,
 	// clang-format on
 };
 static const struct v4l2_ctrl_config v4l2loopback_ctrl_sustainframerate = {
@@ -2406,6 +2406,21 @@ static void timeout_timer_clb(unsigned long nr)
 	spin_unlock(&dev->lock);
 }
 
+static int set_default_format(struct v4l2_loopback_device *dev)
+{
+       //const struct v4l2l_format *format = &formats[3]; // V4L2_PIX_FMT_RGB24, 24 bpp RGB, be
+       //const struct v4l2l_format *format = &formats[1]; // V4L2_PIX_FMT_RGB32, 32 bpp RGB, be
+       const struct v4l2l_format *format = &formats[11]; // V4L2_PIX_FMT_YUYV,4:2:2, packed, YUYV
+       struct v4l2_pix_format *pix_fmt = &dev->pix_format;
+
+       pix_fmt->width = 800;
+       pix_fmt->height = 600;
+       pix_format_set_size(pix_fmt, format, 800, 600);
+       pix_fmt->pixelformat = format->fourcc;
+       pix_fmt->colorspace = V4L2_COLORSPACE_SRGB;
+       return 0;
+}
+
 /* init loopback main structure */
 #define DEFAULT_FROM_CONF(confmember, default_condition, default_value)        \
 	((conf) ?                                                              \
@@ -2591,7 +2606,9 @@ static int v4l2_loopback_add(struct v4l2_loopback_config *conf, int *ret_nr)
 		V4L2_COLORSPACE_SRGB; /* do we need to set this ? */
 	dev->pix_format.field = V4L2_FIELD_NONE;
 
+	set_default_format(dev);
 	dev->buffer_size = PAGE_ALIGN(dev->pix_format.sizeimage);
+	dev->pix_format.sizeimage = dev->buffer_size;
 	dprintk("buffer_size = %ld (=%d)\n", dev->buffer_size,
 		dev->pix_format.sizeimage);
 
@@ -2608,6 +2625,7 @@ static int v4l2_loopback_add(struct v4l2_loopback_config *conf, int *ret_nr)
 		goto out_free_device;
 	}
 	v4l2loopback_create_sysfs(dev->vdev);
+	dev->ready_for_capture = 1;
 
 	MARK();
 	if (ret_nr)
